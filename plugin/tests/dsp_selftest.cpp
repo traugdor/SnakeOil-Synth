@@ -95,10 +95,88 @@ bool finite(const std::vector<float>& x) {
     return true;
 }
 
+// Mirrors tests/test_tail_slots.py: with tail slots the oldest held note is force-released
+// into a short tail instead of being hard-stolen, and the pool never exceeds its capacity.
+int checkHybridAllocation() {
+    int failures = 0;
+    const auto fail = [&](const char* what) {
+        std::printf("FAIL hybrid allocation: %s\n", what);
+        ++failures;
+    };
+    const int block = 256;
+    std::vector<float> buffer(static_cast<std::size_t>(block) * 2);
+    const auto make = [&](int slots) {
+        auto e = std::make_unique<snakeoil::Engine>(44100.0, block, snakeoil::kMaxVoices, slots, 12);
+        e->setParamById("amp_release", 3.0);
+        return e;
+    };
+
+    auto ptr = make(6);
+    snakeoil::Engine& e = *ptr;
+    if (e.tailSlots() != 6 || e.tailCapacity() != 12 || e.tailCount() != 0) {
+        fail("initial slots/capacity/count");
+    }
+    for (int i = 0; i < 12; ++i) {
+        e.noteOn(48 + i, 100);
+    }
+    e.render(buffer.data(), block);
+    e.noteOff(48);
+    e.noteOff(49);
+    e.render(buffer.data(), block);
+    if (e.tailCount() != 2) {
+        fail("released notes are not ringing as tails");
+    }
+    for (int i = 0; i < 6; ++i) {
+        e.noteOn(70 + i, 100);
+    }
+    e.render(buffer.data(), block);
+    // 12 playable + 6 tail slots: the two released notes keep ringing, nothing is cut short.
+    if (e.tailCount() < 2) {
+        fail("first-released notes were stolen instead of ringing on");
+    }
+    if (e.activeVoices() > snakeoil::kMaxVoices + e.tailSlots()) {
+        fail("active voices exceed playable + tail slots");
+    }
+    for (int i = 0; i < 40; ++i) {
+        e.noteOn(30 + i, 100);
+        if (i % 2 == 0) {
+            e.noteOff(30 + i);
+        }
+        e.render(buffer.data(), block);
+        if (e.activeVoices() > snakeoil::kMaxVoices + e.tailSlots()) {
+            fail("active voices exceed playable + tail slots under load");
+            break;
+        }
+        for (float v : buffer) {
+            if (!std::isfinite(v) || std::fabs(v) > 4.0f) {
+                fail("non-finite or runaway output under load");
+                i = 40;
+                break;
+            }
+        }
+    }
+
+    // Slot count: clamped to the capacity, never cuts sounding voices.
+    if (e.setTailSlots(99) != 12 || e.tailSlots() != 12 || e.setTailSlots(-3) != 0 || e.setTailSlots(6) != 6) {
+        fail("setTailSlots clamping");
+    }
+    auto classicPtr = make(0);
+    if (classicPtr->setTailSlots(6) != 6) {
+        fail("capacity 12 should allow enabling tails on a classic start");
+    }
+    classicPtr->setTailSlots(0);
+    const int before = e.activeVoices();
+    e.setTailSlots(0);
+    if (e.activeVoices() != before) {
+        fail("shrinking the slots cut sounding voices");
+    }
+    return failures;
+}
+
 }  // namespace
 
 int main() {
-    int failures = 0;
+    int failures = checkHybridAllocation();
 
     // Effects must be block-size invariant (Python tolerance 1e-9).
     const auto chainRef = renderChain(8192, 8192);

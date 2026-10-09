@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -40,6 +41,11 @@ constexpr int kStackHeaderHeight = 20;
 constexpr int kMeterColumnWidth = 44;
 constexpr int kMeterGap = 6;
 constexpr int kLimiterLabelHeight = 16;
+constexpr int kTailLabelHeight = 16;
+constexpr int kTailLabelGap = 4;
+const char* const kTailTooltip =
+    "Released notes still ringing / tail slots. Unused playable voices are shared, so the count can "
+    "exceed the slots when fewer keys are held. Click to switch between 6 and 12 tail slots.";
 
 constexpr int kMatrixSourceWidth = 92;
 constexpr int kMatrixScaleWidth = 112;
@@ -97,6 +103,7 @@ const juce::Colour kPanel(0xff20242d);
 const juce::Colour kOutline(0xff343a4a);
 const juce::Colour kText(0xffdfe3ec);
 const juce::Colour kTextDim(0xff9aa3b5);
+const juce::Colour kTextWarn(0xffffb74d);  // tail slots all in use
 const juce::Colour kAccent(0xff4fc3f7);
 const juce::Colour kTrack(0xff3a3f4b);
 const juce::Colour kThumb(0xffe8eaf0);
@@ -347,13 +354,28 @@ public:
 };
 
 
+/** A text label that acts as a button. */
+class ClickableLabel : public juce::Label {
+public:
+    explicit ClickableLabel(std::function<void()> onClick) : onClick_(std::move(onClick)) {}
+
+    void mouseUp(const juce::MouseEvent& e) override {
+        if (e.mouseWasClicked() && contains(e.getPosition()) && onClick_) {
+            onClick_();
+        }
+    }
+
+private:
+    std::function<void()> onClick_;
+};
+
 }  // namespace
 
 // --- Content: the scrolled body ---------------------------------------------------------------------
 
 class SnakeOilEditor::Content : public juce::Component {
 public:
-    explicit Content(juce::AudioProcessorValueTreeState& state) : state_(state) {
+    explicit Content(SnakeOilProcessor& processor) : processor_(processor), state_(processor.state()) {
         specs_ = snakeoil::paramSpecs(count_);
 
         // One box per displayed title, in order of first appearance in the registry.
@@ -378,6 +400,19 @@ public:
     }
 
     LevelMeter& meter() { return meter_; }
+
+    /** Refresh the "Tails n/slots" readout from the processor (message thread). */
+    void updateTails() {
+        if (tailLabel_ == nullptr) {
+            return;
+        }
+        const juce::String text = "Tails " + juce::String(processor_.tailCount()) + "/" + juce::String(processor_.tailSlots());
+        if (tailLabel_->getText() != text) {
+            tailLabel_->setText(text, juce::dontSendNotification);
+        }
+        const bool full = processor_.tailCount() >= processor_.tailSlots();
+        tailLabel_->setColour(juce::Label::textColourId, full ? kTextWarn : kTextDim);
+    }
 
     /** Width the grid needs to show every box at its natural size. */
     int naturalWidth() const {
@@ -760,6 +795,8 @@ private:
             buildFlow(box, indices, wrap);
             if (title == "Master") {
                 addMeter(box);
+            } else if (title == "Unison") {
+                addTailToggle(box);
             }
         }
     }
@@ -940,12 +977,31 @@ private:
         box.contentHeight = std::max(box.contentHeight, LevelMeter::kPreferredHeight + 2 + kLimiterLabelHeight);
     }
 
+    /** Hybrid-allocation readout under the Unison controls; a click switches between 6 and 12 tail slots. */
+    void addTailToggle(Box& box) {
+        tailLabel_ = std::make_unique<ClickableLabel>([this] {
+            processor_.setTailSlots(processor_.tailSlots() == 12 ? 6 : 12);
+            updateTails();
+        });
+        tailLabel_->setJustificationType(juce::Justification::centred);
+        tailLabel_->setFont(juce::Font(juce::FontOptions(11.0f)));
+        tailLabel_->setBorderSize(juce::BorderSize<int>(0, 0, 0, 0));
+        tailLabel_->setTooltip(kTailTooltip);
+        tailLabel_->setMouseCursor(juce::MouseCursor::PointingHandCursor);
+        addAndMakeVisible(*tailLabel_);
+        box.items.push_back({tailLabel_.get(), {0, box.contentHeight + kTailLabelGap, box.contentWidth, kTailLabelHeight}});
+        box.contentHeight += kTailLabelGap + kTailLabelHeight;
+        updateTails();
+    }
+
+    SnakeOilProcessor& processor_;
     juce::AudioProcessorValueTreeState& state_;
     const snakeoil::ParamSpec* specs_ = nullptr;
     int count_ = 0;
     std::vector<std::unique_ptr<Control>> controls_;
     std::vector<std::unique_ptr<juce::Label>> extraLabels_;
     std::unique_ptr<juce::Label> limiterLabel_;
+    std::unique_ptr<ClickableLabel> tailLabel_;
     LevelMeter meter_;
     std::vector<std::unique_ptr<Box>> boxes_;
     std::vector<Slot> slots_;
@@ -958,7 +1014,7 @@ SnakeOilEditor::SnakeOilEditor(SnakeOilProcessor& processor)
     laf_ = std::make_unique<SnakeOilLookAndFeel>();
     setLookAndFeel(laf_.get());
 
-    content_ = std::make_unique<Content>(processor_.state());
+    content_ = std::make_unique<Content>(processor_);
     viewport_.setViewedComponent(content_.get(), false);
     viewport_.setScrollBarsShown(true, true);
     viewport_.setScrollBarThickness(kScrollBarThickness);
@@ -1005,4 +1061,5 @@ void SnakeOilEditor::timerCallback() {
     bool clipped = false;
     processor_.engineMeter(left, right, clipped);
     content_->meter().update(left, right, clipped, juce::Time::getMillisecondCounterHiRes());
+    content_->updateTails();
 }

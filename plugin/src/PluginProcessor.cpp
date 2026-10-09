@@ -37,7 +37,7 @@ SnakeOilProcessor::SnakeOilProcessor()
     for (const auto* spec : specs_) {
         rawValues_.push_back(apvts_.getRawParameterValue(spec->id));
     }
-    engine_ = std::make_unique<snakeoil::Engine>(44100.0, 512);
+    engine_ = std::make_unique<snakeoil::Engine>(44100.0, 512, snakeoil::kMaxVoices, tailSlots(), kTailCapacity);
     loadNoiseTables();
     for (int i = 0; i < count; ++i) {
         if (specs_[static_cast<std::size_t>(i)]->kind == snakeoil::ParamKind::Choice) {
@@ -83,7 +83,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout SnakeOilProcessor::makeLayou
 
 void SnakeOilProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     const int block = std::min(std::max(samplesPerBlock, 64), snakeoil::kMaxBlock);
-    engine_ = std::make_unique<snakeoil::Engine>(sampleRate, block);
+    engine_ = std::make_unique<snakeoil::Engine>(sampleRate, block, snakeoil::kMaxVoices, tailSlots(), kTailCapacity);
     loadNoiseTables();
     scratch_.assign(static_cast<std::size_t>(block) * 2, 0.0f);
 }
@@ -155,6 +155,10 @@ void SnakeOilProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         midi.clear();
         return;
     }
+    const int wantedTails = tailSlots_.load(std::memory_order_relaxed);
+    if (engine_->tailSlots() != wantedTails) {
+        engine_->setTailSlots(wantedTails);
+    }
     syncParametersToEngine();
     handleMidi(midi);
     midi.clear();
@@ -184,6 +188,7 @@ void SnakeOilProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         }
         done += chunk;
     }
+    tailCount_.store(engine_->tailCount(), std::memory_order_relaxed);
 }
 
 juce::AudioProcessorEditor* SnakeOilProcessor::createEditor() {
@@ -199,8 +204,13 @@ void SnakeOilProcessor::engineMeter(double& left, double& right, bool& clipped) 
     }
 }
 
+void SnakeOilProcessor::setTailSlots(int slots) {
+    tailSlots_.store(juce::jlimit(0, kTailCapacity, slots), std::memory_order_relaxed);
+}
+
 void SnakeOilProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    const auto state = apvts_.copyState();
+    auto state = apvts_.copyState();
+    state.setProperty("tailSlots", tailSlots(), nullptr);
     juce::MemoryOutputStream stream(destData, false);
     state.writeToStream(stream);
 }
@@ -208,6 +218,7 @@ void SnakeOilProcessor::getStateInformation(juce::MemoryBlock& destData) {
 void SnakeOilProcessor::setStateInformation(const void* data, int sizeInBytes) {
     const auto tree = juce::ValueTree::readFromData(data, static_cast<std::size_t>(sizeInBytes));
     if (tree.isValid()) {
+        setTailSlots(static_cast<int>(tree.getProperty("tailSlots", kDefaultTailSlots)));
         apvts_.replaceState(tree);
     }
 }

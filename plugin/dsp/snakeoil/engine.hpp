@@ -382,6 +382,27 @@ public:
         meterClip_ = false;
     }
 
+    // Hybrid allocation: tailSlots() released notes may ring on top of the
+    // playable voices; the pool is sized for tailCapacity() once, at construction.
+    // Changing the count never cuts a sounding voice (as SynthEngine.set_tail_slots).
+    int setTailSlots(int n) {
+        tailSlots_ = std::min(std::max(n, 0), tailCapacity_);
+        return tailSlots_;
+    }
+    int tailSlots() const { return tailSlots_; }
+    int tailCapacity() const { return tailCapacity_; }
+
+    // Released voices still ringing out (SynthEngine.tail_count).
+    int tailCount() const {
+        int count = 0;
+        for (const auto& v : voices_) {
+            if (v.active() && !v.gated()) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
     void peekMeter(double& left, double& right, bool& clipped) const {
         left = meterL_;
         right = meterR_;

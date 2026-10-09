@@ -416,6 +416,31 @@ int checkLayout(juce::AudioProcessorEditor& editor, const std::string& tag, bool
         }
     }
 
+    // Unison hosts the clickable tail-slot label below its controls (not a parameter control).
+    if (const auto it = byTitle.find("Unison"); it != byTitle.end()) {
+        juce::Label* tails = nullptr;
+        for (auto* c : it->second->controls) {
+            if (auto* l = dynamic_cast<juce::Label*>(c); l != nullptr && l->getText().startsWith("Tails ")) {
+                tails = l;
+            }
+        }
+        if (tails == nullptr) {
+            fail("Unison does not contain the 'Tails n/slots' label");
+        } else {
+            for (auto* c : it->second->controls) {
+                if (isControl(*c) && c->getBottom() > tails->getY()) {
+                    fail("tail label is not below " + describe(*c));
+                }
+            }
+            if (tails->getTooltip().isEmpty()) {
+                fail("tail label has no tooltip");
+            }
+            if (tails->getText() != "Tails 0/6") {
+                fail("tail label reads '" + tails->getText().toStdString() + "', expected 'Tails 0/6'");
+            }
+        }
+    }
+
     if (expectFits && in.viewport != nullptr) {
         const int visible = in.viewport->getMaximumVisibleWidth();
         if (in.root->getWidth() > visible) {
