@@ -1,0 +1,61 @@
+name: Plugin build and release
+
+# Builds the VST3 plug-in and the standalone app on Windows, runs the plug-in tests and
+# publishes a GitHub pre-release with the binaries on every push to main that touches
+# the plug-in. Python-only and docs-only pushes are covered by the CI workflow instead.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "plugin/**"
+      - "tools/export_params.py"
+      - "tools/gen_plugin_params.py"
+      - ".github/workflows/plugin-release.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: plugin-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      VERSION: "0.1.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S plugin -B plugin/build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build plugin/build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir plugin/build -C Release --output-on-failure
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $tag = "v$env:VERSION-build.${{ github.run_number }}"
+          "TAG=$tag" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          $art = "plugin/build/SnakeOilSynth_artefacts/Release"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path "$art/VST3/SnakeOil Synth.vst3" -DestinationPath "dist/SnakeOil-Synth-$tag-VST3-win64.zip"
+          Compress-Archive -Path "$art/Standalone/SnakeOil Synth.exe" -DestinationPath "dist/SnakeOil-Synth-$tag-Standalone-win64.zip"
+          Copy-Item docs/manual/SnakeOil-Synth-User-Manual.pdf dist/
+          Get-ChildItem dist
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:TAG dist/* `
+            --target ${{ github.sha }} `
+            --title "SnakeOil Synth $env:TAG" `
+            --prerelease `
+            --generate-notes
