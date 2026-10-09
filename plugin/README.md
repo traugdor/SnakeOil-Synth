@@ -32,11 +32,19 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
   `mod_matrix.hpp`, `oscillator.hpp`, `smoother.hpp`, `version.hpp`, `voice.hpp`.
 - `src/` - JUCE wrapper:
   - `PluginProcessor.h/.cpp` - parameters (APVTS built from the registry), MIDI, engine glue, meter readout.
-  - `PluginEditor.h/.cpp` - the editor: a 36 px header (title and level meter) above a `juce::Viewport`
-    whose content packs one group box per parameter group (knob, toggle and choice cells; a table for the
-    mod matrix), plus the dark `LookAndFeel_V4` theme. The window is resizable; the body scrolls vertically.
-  - `LevelMeter.h` - header-only stereo peak meter (-60..0 dBFS, peak hold, latching CLIP); its ballistics take
-    an explicit timestamp so they can be driven from a test.
+  - `PluginEditor.h/.cpp` - the editor: a slim title strip above a `juce::Viewport` whose content reproduces the
+    Python app's hand-placed five-column grid (Oscillator 1 | Oscillator 2 | Modulation | Master | Tempo + Noise;
+    Filter | Filter Env | Amp Envelope | LFO | Mod Matrix; Effects across three columns | Unison | Glide). Columns
+    are as wide as their widest box, rows as tall as their tallest, and boxes stretch to fill their cell. The
+    registry groups LFO 1 and LFO 2 share one "LFO" box as two vertical stacks; Effects is laid out as toggle
+    blocks (each root toggle heads a block, its dependents - found through the generated `under` field - sit in
+    rows beneath it, at most six columns wide); the Mod Matrix is a Source / Scale / Destination table; the level
+    meter sits inside the Master box next to its controls, with a static "GR off" label (the processor reports
+    no gain reduction). Toggles are Off/On buttons. Content is about 1460 px wide, so the default window is
+    that size (capped at 1500 x 800); a narrower window scrolls the fixed grid horizontally and vertically. The
+    dark `LookAndFeel_V4` theme lives in the same file. Unknown registry groups form an extra row at the bottom.
+  - `LevelMeter.h` - header-only stereo peak meter (two vertical bars, -60..0 dBFS, peak hold, latching CLIP);
+    its ballistics take an explicit timestamp so they can be driven from a test.
   - `params_gen.hpp` - generated parameter registry (do not edit by hand).
 - `tests/` - doctest unit tests (`snakeoil_tests`), the golden harness (`golden_check`), `dsp_selftest`, and
   `editor_snapshot.cpp` (the `EditorSnapshot` tool, below).
@@ -49,10 +57,15 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
     EditorSnapshot --check             # layout invariants; non-zero exit on failure (ctest: editor_layout)
     EditorSnapshot --png <dir>         # write editor_default.png and editor_full.png (whole scrollable body)
 
-`--check` runs at the default, the full-content and the minimum window size and verifies: every knob has at
-least a 56 px square dial area; every control lies strictly inside its group box; no two controls in a group
-overlap; every group lies inside the content; no horizontal overflow or scrollbar; each mod-matrix row has its
-three controls on one line; and the control count equals the parameter count. The binary is
+`--check` runs at the default, the full-content and the minimum window size (at the minimum the grid scrolls,
+so only the content-space checks apply) and verifies: every knob has at least a 56 px square dial area; every
+control lies strictly inside its group box; no two controls in a group overlap; every group lies inside the
+content and no two group boxes overlap; the boxes sit in the Python app's grid (rows by y, columns by x, equal
+height per row, Effects spanning the first three columns, Mod Matrix right of the LFO); the LFO box holds two
+stacks (LFO 1 left of LFO 2) under centred headers; every Effects dependent lies below its root toggle within
+its block; each mod-matrix row has its three controls on one line under the header; the level meter is in the
+Master box right of its controls; there is exactly one control per parameter (85); and at the default and full
+sizes there is no horizontal overflow. The binary is
 `plugin\build\Release\EditorSnapshot_artefacts\Release\EditorSnapshot.exe`. Look at the PNGs after any layout change.
 
 ## Golden sound lock

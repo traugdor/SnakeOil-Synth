@@ -39,12 +39,13 @@ def spec_lines(params):
         else:
             default_value = float(default)
         lines.append(
-            "    {%s, %s, %s, %s, %sf, %sf, %s, %s, %sf}," % (
+            "    {%s, %s, %s, %s, %sf, %sf, %s, %s, %sf, %s}," % (
                 c_string(p["id"]), c_string(p["label"]), c_string(p["group"]),
                 kind_enum(p["kind"]), repr(float(p["minimum"])), repr(float(p["maximum"])),
                 "true" if p["scale"] == "log" else "false",
                 c_string(choices) if choices else "nullptr",
                 repr(float(default_value)),
+                c_string(p.get("under", "")),
             )
         )
     return lines
@@ -73,6 +74,7 @@ struct ParamSpec {{
     bool logarithmic;
     const char* choices;  // '{SEP}'-separated, or nullptr
     float defaultValue;   // choice: index; toggle: 0/1; continuous: value
+    const char* under;    // id of the control this one depends on ("" when none)
 }};
 
 inline const ParamSpec* paramSpecs(int& count) {{

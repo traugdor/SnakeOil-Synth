@@ -9,9 +9,9 @@
 class SnakeOilProcessor;
 
 /**
- * Plugin editor: a header strip (title and level meter) above a scrollable body.
- * The body is a juce::Viewport showing a Content component that holds one group box
- * per parameter group, packed left to right and wrapped to the available width.
+ * Plugin editor: a slim title strip above a scrollable body. The body is a juce::Viewport
+ * showing a Content component that lays the group boxes out on the same hand-placed
+ * five-column grid as the Python app (see the cell table in PluginEditor.cpp).
  */
 class SnakeOilEditor : public juce::AudioProcessorEditor, private juce::Timer {
 public:
@@ -21,8 +21,8 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
-    /** The header meter; exposed so tools can drive it without a running audio engine. */
-    LevelMeter& levelMeter() { return meter_; }
+    /** The output meter in the Master box; exposed so tools can drive it without a running audio engine. */
+    LevelMeter& levelMeter();
 
 private:
     class Content;
@@ -33,7 +33,7 @@ private:
     std::unique_ptr<juce::LookAndFeel_V4> laf_;
     std::unique_ptr<Content> content_;
     juce::Viewport viewport_;
-    LevelMeter meter_;
+    juce::TooltipWindow tooltips_{this, 700};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SnakeOilEditor)
 };

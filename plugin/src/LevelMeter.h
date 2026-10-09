@@ -7,7 +7,7 @@
 #include <cmath>
 
 /**
- * Stereo peak meter: two horizontal bars on a -60..0 dBFS scale (linear in dB),
+ * Stereo peak meter: two vertical bars on a -60..0 dBFS scale (linear in dB),
  * green below -12 dB, yellow up to -3 dB, red above. The bar attacks instantly and
  * falls at kFallDbPerSec; a thin tick holds the recent peak for kPeakHoldMs and then
  * falls at kPeakFallDbPerSec. A CLIP box latches for kClipHoldMs after the processor
@@ -78,75 +78,67 @@ public:
     }
 
     void paint(juce::Graphics& g) override {
-        const auto track = juce::Colour(0xff2a2f3b);
-        const auto text = juce::Colour(0xff9aa3b5);
+        const auto track = juce::Colour(0xff12141a);
+        const auto marker = juce::Colour(0xffe8ecf5);
+
+        const auto box = clipBox();
+        g.setColour(clip_ ? juce::Colour(0xffe53935) : juce::Colour(0xff3a2224));
+        g.fillRect(box);
+        g.setColour(clip_ ? marker : juce::Colour(0xff6a5658));
+        g.setFont(juce::Font(juce::FontOptions(9.0f, juce::Font::bold)));
+        g.drawText("CLIP", box, juce::Justification::centred, false);
+
         for (int ch = 0; ch < 2; ++ch) {
             const auto bar = barBounds(ch);
             g.setColour(track);
-            g.fillRoundedRectangle(bar.toFloat(), 2.0f);
-
-            const float levelX = dbToX(levelDb(ch), bar);
-            drawSegment(g, bar, static_cast<float>(bar.getX()), std::min(levelX, dbToX(kGreenTopDb, bar)), juce::Colour(0xff3ddc84));
-            if (levelDb(ch) > kGreenTopDb) {
-                drawSegment(g, bar, dbToX(kGreenTopDb, bar), std::min(levelX, dbToX(kYellowTopDb, bar)),
-                            juce::Colour(0xffffd54f));
+            g.fillRect(bar);
+            const float level = levelDb(ch);
+            drawSegment(g, bar, kFloorDb, std::min(level, kGreenTopDb), juce::Colour(0xff43a047));
+            if (level > kGreenTopDb) {
+                drawSegment(g, bar, kGreenTopDb, std::min(level, kYellowTopDb), juce::Colour(0xfffdd835));
             }
-            if (levelDb(ch) > kYellowTopDb) {
-                drawSegment(g, bar, dbToX(kYellowTopDb, bar), levelX, juce::Colour(0xffff5252));
+            if (level > kYellowTopDb) {
+                drawSegment(g, bar, kYellowTopDb, level, juce::Colour(0xffe53935));
             }
             if (peakDb(ch) > kFloorDb) {
-                const float px = dbToX(peakDb(ch), bar);
-                g.setColour(juce::Colour(0xffe8eaf0));
-                g.fillRect(px - 1.0f, static_cast<float>(bar.getY()), 2.0f, static_cast<float>(bar.getHeight()));
+                const float py = dbToY(peakDb(ch), bar);
+                g.setColour(marker);
+                g.fillRect(static_cast<float>(bar.getX()), std::max(py - 1.0f, static_cast<float>(bar.getY())),
+                           static_cast<float>(bar.getWidth()), 2.0f);
             }
-            g.setColour(text);
-            g.setFont(juce::Font(juce::FontOptions(9.0f)));
-            g.drawText(ch == 0 ? "L" : "R", 0, bar.getY() - 2, kLabelWidth - 2, bar.getHeight() + 4,
-                       juce::Justification::centredRight, false);
         }
-
-        const auto box = clipBox();
-        g.setColour(clip_ ? juce::Colour(0xffff5252) : juce::Colour(0xff2c3242));
-        g.fillRoundedRectangle(box.toFloat(), 3.0f);
-        g.setColour(clip_ ? juce::Colours::white : text);
-        g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
-        g.drawText("CLIP", box, juce::Justification::centred, false);
     }
 
 private:
-    static constexpr int kLabelWidth = 12;
-    static constexpr int kBarWidth = 170;
-    static constexpr int kBarHeight = 8;
-    static constexpr int kBarGap = 2;
-    static constexpr int kClipGap = 6;
-    static constexpr int kClipWidth = 38;
+    static constexpr int kMargin = 3;
+    static constexpr int kBarWidth = 11;
+    static constexpr int kBarHeight = 80;
+    static constexpr int kBarGap = 4;
+    static constexpr int kClipHeight = 12;
 
 public:
-    /** Preferred component size. */
-    static constexpr int kPreferredWidth = kLabelWidth + kBarWidth + kClipGap + kClipWidth;
-    static constexpr int kPreferredHeight = 28;
+    /** Preferred component size: a CLIP box above two vertical bars. */
+    static constexpr int kPreferredWidth = 2 * kBarWidth + kBarGap + 2 * kMargin;
+    static constexpr int kPreferredHeight = kClipHeight + kBarHeight + 3 * kMargin;
 
 private:
     juce::Rectangle<int> barBounds(int channel) const {
-        const int total = 2 * kBarHeight + kBarGap;
-        const int top = (getHeight() - total) / 2;
-        return {kLabelWidth, top + channel * (kBarHeight + kBarGap), kBarWidth, kBarHeight};
+        return {kMargin + channel * (kBarWidth + kBarGap), 2 * kMargin + kClipHeight, kBarWidth, kBarHeight};
     }
 
-    juce::Rectangle<int> clipBox() const {
-        const int total = 2 * kBarHeight + kBarGap;
-        return {kLabelWidth + kBarWidth + kClipGap, (getHeight() - total) / 2, kClipWidth, total};
-    }
+    juce::Rectangle<int> clipBox() const { return {kMargin, kMargin, getWidth() - 2 * kMargin, kClipHeight}; }
 
-    static float dbToX(float db, juce::Rectangle<int> bar) {
+    static float dbToY(float db, juce::Rectangle<int> bar) {
         const float t = (std::clamp(db, kFloorDb, 0.0f) - kFloorDb) / (0.0f - kFloorDb);
-        return static_cast<float>(bar.getX()) + t * static_cast<float>(bar.getWidth());
+        return static_cast<float>(bar.getBottom()) - t * static_cast<float>(bar.getHeight());
     }
 
-    static void drawSegment(juce::Graphics& g, juce::Rectangle<int> bar, float x0, float x1, juce::Colour colour) {
-        if (x1 > x0) {
+    static void drawSegment(juce::Graphics& g, juce::Rectangle<int> bar, float fromDb, float toDb, juce::Colour colour) {
+        const float y1 = dbToY(fromDb, bar);
+        const float y0 = dbToY(toDb, bar);
+        if (y1 > y0) {
             g.setColour(colour);
-            g.fillRect(x0, static_cast<float>(bar.getY()), x1 - x0, static_cast<float>(bar.getHeight()));
+            g.fillRect(static_cast<float>(bar.getX()), y0, static_cast<float>(bar.getWidth()), y1 - y0);
         }
     }
 
