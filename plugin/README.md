@@ -1,7 +1,14 @@
 # SnakeOil Synth VST3 plugin
 
 C++ port of the Python reference synth (`midi_synth/`) as a VST3 instrument (plus a Standalone app) built on JUCE.
-Design: `docs/superpowers/specs/2026-10-06-vst3-plugin-design.md`. Status: phase P0 (scaffold; outputs silence).
+Design: `docs/superpowers/specs/2026-10-06-vst3-plugin-design.md`. Status: phases P1-P5 complete and P6 partly -
+the JUCE shell runs a DSP core that matches the Python reference bit-for-bit across 42 golden scenarios: oscillators
+(saw + square layer, PWM, fm/am/ring/sync), envelopes, filter env/key-tracking/velocity, 12/24 dB filters + whistle,
+glide, LFOs, unison, noise, limiter, stereo effects (chorus, ping-pong delay, reverb, bitcrush), the mod matrix,
+hybrid voice allocation with tail slots, and host-tempo-synced delay. A custom editor drives every parameter with
+output meters. Remaining: the P6 real-time-safety pass (the engine still looks parameters up by string each block),
+and P7 (CLAP/macOS/installer). The JUCE plugin build is not compiled in the development sandbox (no
+CMake/JUCE/system headers); only the no-JUCE DSP, golden harness and self-test are built there.
 
 ## Build, test, install (Windows, no admin)
 
@@ -20,10 +27,23 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
 
 ## Layout
 
-- `dsp/` - `snakeoil_dsp`, pure C++20 static library, no JUCE dependency.
+- `dsp/` - `snakeoil_dsp`, pure C++20 DSP with no JUCE dependency (header-only):
+  `oscillator.hpp`, `envelope.hpp`, `biquad.hpp`, `voice.hpp`, `engine.hpp`.
 - `src/` - JUCE wrapper: processor and editor.
-- `tests/` - doctest unit tests (`snakeoil_tests`) and the golden harness stub (`golden_check`).
+- `tests/` - doctest unit tests (`snakeoil_tests`) and the golden harness (`golden_check`).
 - `tools/` - build, test and install scripts.
+
+## Golden sound lock
+
+`golden_check <scenario.json> <expected.f32>` replays a scenario and compares the
+rendered audio with the Python reference within 1e-6 absolute. `ctest` runs the
+`default` scenario. Regenerate the scenario and expected audio after an
+intentional sound change:
+
+    python tools/export_cpp_golden.py default
+
+`tools/export_params.py` writes `plugin/params.json` (the parameter registry) for
+the generated parameter layout in P2.
 
 ## Host setup
 

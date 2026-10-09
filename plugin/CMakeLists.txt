@@ -54,10 +54,33 @@ snakeoil_strict_warnings(snakeoil_tests)
 add_test(NAME snakeoil_tests COMMAND snakeoil_tests)
 
 add_executable(golden_check tests/golden_check.cpp)
+target_include_directories(golden_check PRIVATE tests)
 target_link_libraries(golden_check PRIVATE snakeoil_dsp)
 snakeoil_strict_warnings(golden_check)
 
+add_executable(dsp_selftest tests/dsp_selftest.cpp)
+target_link_libraries(dsp_selftest PRIVATE snakeoil_dsp)
+snakeoil_strict_warnings(dsp_selftest)
+add_test(NAME dsp_selftest COMMAND dsp_selftest)
+
+# Golden sound lock: replay each scenario and compare with the Python reference
+# (tools/export_cpp_golden.py). Runs without JUCE.
+file(GLOB _snakeoil_golden "${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/*.scenario.json")
+foreach(_scenario ${_snakeoil_golden})
+    get_filename_component(_name "${_scenario}" NAME)
+    string(REGEX REPLACE "\\.scenario\\.json$" "" _name "${_name}")
+    add_test(
+        NAME golden_${_name}
+        COMMAND golden_check "${_scenario}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/golden/${_name}.f32")
+endforeach()
+
 # --- Plugin ------------------------------------------------------------------
+juce_add_binary_data(SnakeOilData SOURCES
+    tests/golden/noisetable_white.f32
+    tests/golden/noisetable_pink.f32
+    tests/golden/noisetable_brown.f32)
+
 juce_add_plugin(SnakeOilSynth
     COMPANY_NAME "SnakeOil"
     PRODUCT_NAME "SnakeOil Synth"
@@ -82,6 +105,7 @@ target_compile_definitions(SnakeOilSynth PUBLIC
 target_link_libraries(SnakeOilSynth
     PRIVATE
         snakeoil_dsp
+        SnakeOilData
         juce::juce_audio_utils
     PUBLIC
         juce::juce_recommended_config_flags
