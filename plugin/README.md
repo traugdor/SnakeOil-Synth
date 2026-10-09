@@ -32,11 +32,11 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
   `mod_matrix.hpp`, `oscillator.hpp`, `smoother.hpp`, `version.hpp`, `voice.hpp`.
 - `src/` - JUCE wrapper:
   - `PluginProcessor.h/.cpp` - parameters (APVTS built from the registry), MIDI, engine glue, meter readout.
-    Hybrid voice allocation is on: the engine is built with 6 tail slots in a 12-slot pool (mirroring
-    `TAIL_SLOTS`/`TAIL_SLOTS_MAX` in `midi_synth/config.py`). The slot count (6 or 12) is not a registry
-    parameter; it is stored as the `tailSlots` property of the APVTS state tree (absent means 6), handed to the
+    Hybrid voice allocation is on: the engine is built with 12 tail slots in a 24-slot pool (more headroom than the Python reference's 6/12;
+    `TAIL_SLOTS`/`TAIL_SLOTS_MAX` in `midi_synth/config.py`). The slot count (12 or 24) is not a registry
+    parameter; it is stored as the `tailSlots` property of the APVTS state tree (absent means 12), handed to the
     audio thread through an atomic, and survives `prepareToPlay`. The Unison box has a clickable "Tails n/slots"
-    label that toggles 6 and 12; the audio thread publishes the live tail count once per block.
+    label that toggles 12 and 24; the audio thread publishes the live tail count once per block.
   - `PluginEditor.h/.cpp` - the editor: a slim title strip above a `juce::Viewport` whose content reproduces the
     Python app's hand-placed five-column grid (Oscillator 1 | Oscillator 2 | Modulation | Master | Tempo + Noise;
     Filter | Filter Env | Amp Envelope | LFO | Mod Matrix; Effects across three columns | Unison | Glide). Columns

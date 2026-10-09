@@ -435,8 +435,8 @@ int checkLayout(juce::AudioProcessorEditor& editor, const std::string& tag, bool
             if (tails->getTooltip().isEmpty()) {
                 fail("tail label has no tooltip");
             }
-            if (tails->getText() != "Tails 0/6") {
-                fail("tail label reads '" + tails->getText().toStdString() + "', expected 'Tails 0/6'");
+            if (tails->getText() != "Tails 0/12") {
+                fail("tail label reads '" + tails->getText().toStdString() + "', expected 'Tails 0/12'");
             }
         }
     }

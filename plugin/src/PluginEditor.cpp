@@ -45,7 +45,7 @@ constexpr int kTailLabelHeight = 16;
 constexpr int kTailLabelGap = 4;
 const char* const kTailTooltip =
     "Released notes still ringing / tail slots. Unused playable voices are shared, so the count can "
-    "exceed the slots when fewer keys are held. Click to switch between 6 and 12 tail slots.";
+    "exceed the slots when fewer keys are held. Click to switch between 12 and 24 tail slots.";
 
 constexpr int kMatrixSourceWidth = 92;
 constexpr int kMatrixScaleWidth = 112;
@@ -977,10 +977,10 @@ private:
         box.contentHeight = std::max(box.contentHeight, LevelMeter::kPreferredHeight + 2 + kLimiterLabelHeight);
     }
 
-    /** Hybrid-allocation readout under the Unison controls; a click switches between 6 and 12 tail slots. */
+    /** Hybrid-allocation readout under the Unison controls; a click switches between 12 and 24 tail slots. */
     void addTailToggle(Box& box) {
         tailLabel_ = std::make_unique<ClickableLabel>([this] {
-            processor_.setTailSlots(processor_.tailSlots() == 12 ? 6 : 12);
+            processor_.setTailSlots(processor_.tailSlots() == 24 ? 12 : 24);
             updateTails();
         });
         tailLabel_->setJustificationType(juce::Justification::centred);

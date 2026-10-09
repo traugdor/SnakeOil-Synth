@@ -41,11 +41,11 @@ public:
     // Peaks (linear) and the clip flag since the previous call, then resets them.
     void engineMeter(double& left, double& right, bool& clipped);
 
-    // Hybrid voice allocation (mirrors midi_synth/config.py): 6 or 12 tail slots on
+    // Hybrid voice allocation (mirrors midi_synth/config.py): 12 or 24 tail slots on
     // top of the 12 playable voices. A non-automatable setting kept in the state tree
     // property "tailSlots", not a registry parameter.
-    static constexpr int kDefaultTailSlots = 6;
-    static constexpr int kTailCapacity = 12;
+    static constexpr int kDefaultTailSlots = 12;
+    static constexpr int kTailCapacity = 24;
     int tailSlots() const { return tailSlots_.load(std::memory_order_relaxed); }
     void setTailSlots(int slots);
     // Released notes still ringing, as of the last processed block.
