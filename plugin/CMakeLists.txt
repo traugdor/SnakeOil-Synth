@@ -76,7 +76,7 @@ foreach(_scenario ${_snakeoil_golden})
 endforeach()
 
 # --- Plugin ------------------------------------------------------------------
-juce_add_binary_data(SnakeOilData SOURCES
+juce_add_binary_data(SnakeOilData HEADER_NAME SnakeOilData.h SOURCES
     tests/golden/noisetable_white.f32
     tests/golden/noisetable_pink.f32
     tests/golden/noisetable_brown.f32)

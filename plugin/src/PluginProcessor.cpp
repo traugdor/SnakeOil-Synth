@@ -31,7 +31,8 @@ SnakeOilProcessor::SnakeOilProcessor()
       apvts_(*this, nullptr, "PARAMETERS", makeLayout()) {
     int count = 0;
     const snakeoil::ParamSpec* specs = snakeoil::paramSpecs(count);
-    specs_.assign(specs, specs + count);
+    specs_.clear();
+    for (int i = 0; i < count; ++i) specs_.push_back(&specs[i]);
     rawValues_.reserve(specs_.size());
     for (const auto* spec : specs_) {
         rawValues_.push_back(apvts_.getRawParameterValue(spec->id));
@@ -158,8 +159,8 @@ void SnakeOilProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     handleMidi(midi);
     midi.clear();
 
-    if (auto* playHead = getPlayHead()) {
-        if (const auto position = playHead->getPosition()) {
+    if (auto* host = getPlayHead()) {
+        if (const auto position = host->getPosition()) {
             if (const auto bpm = position->getBpm()) {
                 engine_->setHostTempo(*bpm, true);
             }

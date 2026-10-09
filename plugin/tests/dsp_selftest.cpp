@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <memory>
 #include <vector>
 
 #include "snakeoil/effects.hpp"
@@ -29,7 +30,9 @@ double maxAbsDiff(const std::vector<float>& a, const std::vector<float>& b) {
 }
 
 std::vector<float> renderEngine(int total, int block) {
-    snakeoil::Engine engine(44100.0, block, 4);
+    // An Engine is ~0.6 MB; keep it off the stack (MSVC's default stack is 1 MB).
+    const auto enginePtr = std::make_unique<snakeoil::Engine>(44100.0, block, 4);
+    snakeoil::Engine& engine = *enginePtr;
     engine.setParamById("osc1_level", 1.0);
     engine.setParamById("osc2_level", 0.5);
     for (const char* fx : {"fx_chorus", "fx_delay", "fx_reverb", "fx_bitcrush"}) {
@@ -122,7 +125,8 @@ int main() {
     }
 
     // Silence in must stay silent out.
-    snakeoil::Engine quiet(44100.0, 256);
+    const auto quietPtr = std::make_unique<snakeoil::Engine>(44100.0, 256);
+    snakeoil::Engine& quiet = *quietPtr;
     std::vector<float> buffer(512);
     quiet.render(buffer.data(), 256);
     for (float v : buffer) {

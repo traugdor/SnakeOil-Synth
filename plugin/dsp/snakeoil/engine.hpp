@@ -261,6 +261,13 @@ public:
         return {dist(unisonRng_), dist(unisonRng_)};
     }
 
+    // Host tempo supplied by the plugin wrapper once per block; a synced delay
+    // follows it instead of the manual tempo_bpm while `valid` is true.
+    void setHostTempo(double bpm, bool valid) {
+        hostTempo_ = bpm;
+        hasHostTempo_ = valid;
+    }
+
     double getParamById(const std::string& id) const {
         auto it = values_.find(id);
         return it == values_.end() ? 0.0 : it->second;
@@ -625,11 +632,6 @@ private:
     double effectiveBpm() const {
         double bpm = hasHostTempo_ ? hostTempo_ : value("tempo_bpm", 120.0);
         return std::min(std::max(bpm, 40.0), 240.0);
-    }
-
-    void setHostTempo(double bpm, bool valid) {
-        hostTempo_ = bpm;
-        hasHostTempo_ = valid;
     }
 
     static double divisionBeats(const std::string& name) {
