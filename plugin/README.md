@@ -99,4 +99,4 @@ P6 hardening and validation; P7 optional CLAP, macOS, installer.
 
 ## Licensing
 
-SnakeOil Synth is released under the GNU Affero General Public License v3.0 (see `LICENSE` at the repo root). JUCE, which the plug-in links, is AGPL-3.0 or commercial; read its license before distributing any binary.
+Copyright (C) 2026 Joel Trauger. SnakeOil Synth is released under the GNU Affero General Public License v3.0 (see `LICENSE` at the repo root). JUCE, which the plug-in links, is AGPL-3.0 or commercial; read its license before distributing any binary.

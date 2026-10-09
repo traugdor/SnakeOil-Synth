@@ -711,3 +711,9 @@ python render_demo.py --out demo.wav --effects reverb,delay --pwm1 0.3 --mode ri
 
 Renders a 12-note chord to a stereo (2-channel, 16-bit, interleaved L/R) WAV file using only
 NumPy and the standard library.
+
+## License
+
+Copyright (C) 2026 Joel Trauger.
+
+SnakeOil Synth is free software released under the GNU Affero General Public License v3.0; see the `LICENSE` file.
