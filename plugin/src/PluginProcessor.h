@@ -38,7 +38,8 @@ public:
     void setStateInformation(const void*, int) override;
 
     juce::AudioProcessorValueTreeState& state() { return apvts_; }
-    void engineMeter(double& left, double& right, bool& clipped) const;
+    // Peaks (linear) and the clip flag since the previous call, then resets them.
+    void engineMeter(double& left, double& right, bool& clipped);
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout makeLayout();

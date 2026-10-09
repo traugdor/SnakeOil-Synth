@@ -190,9 +190,9 @@ juce::AudioProcessorEditor* SnakeOilProcessor::createEditor() {
     return new SnakeOilEditor(*this);
 }
 
-void SnakeOilProcessor::engineMeter(double& left, double& right, bool& clipped) const {
+void SnakeOilProcessor::engineMeter(double& left, double& right, bool& clipped) {
     if (engine_ != nullptr) {
-        engine_->peekMeter(left, right, clipped);
+        engine_->takeMeter(left, right, clipped);
     } else {
         left = right = 0.0;
         clipped = false;

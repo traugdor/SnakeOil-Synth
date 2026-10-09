@@ -3,10 +3,16 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <memory>
-#include <vector>
+
+#include "LevelMeter.h"
 
 class SnakeOilProcessor;
 
+/**
+ * Plugin editor: a header strip (title and level meter) above a scrollable body.
+ * The body is a juce::Viewport showing a Content component that holds one group box
+ * per parameter group, packed left to right and wrapped to the available width.
+ */
 class SnakeOilEditor : public juce::AudioProcessorEditor, private juce::Timer {
 public:
     explicit SnakeOilEditor(SnakeOilProcessor& processor);
@@ -15,23 +21,19 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
+    /** The header meter; exposed so tools can drive it without a running audio engine. */
+    LevelMeter& levelMeter() { return meter_; }
+
 private:
+    class Content;
+
     void timerCallback() override;
 
-    struct Control {
-        std::unique_ptr<juce::Component> label;
-        std::unique_ptr<juce::Slider> slider;
-        std::unique_ptr<juce::ToggleButton> toggle;
-        std::unique_ptr<juce::ComboBox> combo;
-        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sliderAttachment;
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> buttonAttachment;
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> comboAttachment;
-    };
-
     SnakeOilProcessor& processor_;
-    std::vector<std::unique_ptr<juce::GroupComponent>> groups_;
-    std::vector<Control> controls_;
-    juce::Label meterLabel_;
+    std::unique_ptr<juce::LookAndFeel_V4> laf_;
+    std::unique_ptr<Content> content_;
+    juce::Viewport viewport_;
+    LevelMeter meter_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SnakeOilEditor)
 };

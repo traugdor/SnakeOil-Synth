@@ -5,8 +5,8 @@ Design: `docs/superpowers/specs/2026-10-06-vst3-plugin-design.md`. Status: phase
 the JUCE shell runs a DSP core that matches the Python reference bit-for-bit across 42 golden scenarios: oscillators
 (saw + square layer, PWM, fm/am/ring/sync), envelopes, filter env/key-tracking/velocity, 12/24 dB filters + whistle,
 glide, LFOs, unison, noise, limiter, stereo effects (chorus, ping-pong delay, reverb, bitcrush), the mod matrix,
-hybrid voice allocation with tail slots, and host-tempo-synced delay. A custom editor drives every parameter with
-output meters. Remaining: the P6 real-time-safety pass (the engine still looks parameters up by string each block),
+hybrid voice allocation with tail slots, and host-tempo-synced delay. A custom editor (scrolling grouped knobs,
+a mod-matrix table, a graphical level meter) drives every parameter. Remaining: the P6 real-time-safety pass (the engine still looks parameters up by string each block),
 and P7 (CLAP/macOS/installer). The JUCE plugin build is not compiled in the development sandbox (no
 CMake/JUCE/system headers); only the no-JUCE DSP, golden harness and self-test are built there.
 
@@ -27,11 +27,33 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
 
 ## Layout
 
-- `dsp/` - `snakeoil_dsp`, pure C++20 DSP with no JUCE dependency (header-only):
-  `oscillator.hpp`, `envelope.hpp`, `biquad.hpp`, `voice.hpp`, `engine.hpp`.
-- `src/` - JUCE wrapper: processor and editor.
-- `tests/` - doctest unit tests (`snakeoil_tests`) and the golden harness (`golden_check`).
+- `dsp/snakeoil/` - `snakeoil_dsp`, pure C++20 DSP with no JUCE dependency (headers plus `version.cpp`):
+  `biquad.hpp`, `constants.hpp`, `effects.hpp`, `engine.hpp`, `envelope.hpp`, `lfo.hpp`, `limiter.hpp`,
+  `mod_matrix.hpp`, `oscillator.hpp`, `smoother.hpp`, `version.hpp`, `voice.hpp`.
+- `src/` - JUCE wrapper:
+  - `PluginProcessor.h/.cpp` - parameters (APVTS built from the registry), MIDI, engine glue, meter readout.
+  - `PluginEditor.h/.cpp` - the editor: a 36 px header (title and level meter) above a `juce::Viewport`
+    whose content packs one group box per parameter group (knob, toggle and choice cells; a table for the
+    mod matrix), plus the dark `LookAndFeel_V4` theme. The window is resizable; the body scrolls vertically.
+  - `LevelMeter.h` - header-only stereo peak meter (-60..0 dBFS, peak hold, latching CLIP); its ballistics take
+    an explicit timestamp so they can be driven from a test.
+  - `params_gen.hpp` - generated parameter registry (do not edit by hand).
+- `tests/` - doctest unit tests (`snakeoil_tests`), the golden harness (`golden_check`), `dsp_selftest`, and
+  `editor_snapshot.cpp` (the `EditorSnapshot` tool, below).
 - `tools/` - build, test and install scripts.
+
+## Editor layout test and snapshots
+
+`EditorSnapshot` is a console app that builds the real processor and editor without a host:
+
+    EditorSnapshot --check             # layout invariants; non-zero exit on failure (ctest: editor_layout)
+    EditorSnapshot --png <dir>         # write editor_default.png and editor_full.png (whole scrollable body)
+
+`--check` runs at the default, the full-content and the minimum window size and verifies: every knob has at
+least a 56 px square dial area; every control lies strictly inside its group box; no two controls in a group
+overlap; every group lies inside the content; no horizontal overflow or scrollbar; each mod-matrix row has its
+three controls on one line; and the control count equals the parameter count. The binary is
+`plugin\build\Release\EditorSnapshot_artefacts\Release\EditorSnapshot.exe`. Look at the PNGs after any layout change.
 
 ## Golden sound lock
 

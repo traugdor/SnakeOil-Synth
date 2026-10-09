@@ -110,3 +110,30 @@ target_link_libraries(SnakeOilSynth
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags)
+
+# --- Editor layout check and snapshot tool -------------------------------------
+# Builds the real processor and editor without a host, verifies the layout invariants
+# (ctest: editor_layout) and can render PNG snapshots: EditorSnapshot --png <dir>.
+juce_add_console_app(EditorSnapshot PRODUCT_NAME "EditorSnapshot")
+
+target_sources(EditorSnapshot PRIVATE
+    tests/editor_snapshot.cpp
+    src/PluginProcessor.cpp
+    src/PluginEditor.cpp)
+
+target_include_directories(EditorSnapshot PRIVATE src)
+
+target_compile_definitions(EditorSnapshot PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    "JucePlugin_Name=\"SnakeOil Synth\"")
+
+target_link_libraries(EditorSnapshot
+    PRIVATE
+        snakeoil_dsp
+        SnakeOilData
+        juce::juce_audio_utils
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags)
+
+add_test(NAME editor_layout COMMAND EditorSnapshot --check)
