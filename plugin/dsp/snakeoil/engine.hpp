@@ -105,11 +105,7 @@ public:
 
     std::vector<Voice*> allocateGroup(int count) {
         if (tailSlots_ > 0) {
-            std::vector<Voice*> out;
-            for (int i = 0; i < count; ++i) {
-                out.push_back(&allocateHybrid(1));
-            }
-            return out;
+            return allocateHybridPool(count);
         }
         std::vector<Voice*> chosen;
         for (auto& v : voices_) {
@@ -913,6 +909,12 @@ private:
     }
 
     Voice& allocateHybrid(int count) {
+        const std::vector<Voice*> pool = allocateHybridPool(count);
+        return pool.empty() ? voices_.front() : *pool.front();
+    }
+
+    // Mirrors SynthEngine._allocate_hybrid: the whole group is chosen at once.
+    std::vector<Voice*> allocateHybridPool(int count) {
         const std::vector<Voice*> forced = forceReleaseFor(count);
         int active = 0;
         for (auto& v : voices_) {
@@ -928,7 +930,7 @@ private:
             }
         }
         if (static_cast<int>(chosen.size()) >= count) {
-            return *chosen.front();
+            return chosen;
         }
         std::set<Voice*> skip(forced.begin(), forced.end());
         const bool perVoice = count == 1;
@@ -957,11 +959,11 @@ private:
                     chosen.push_back(v);
                 }
                 if (static_cast<int>(chosen.size()) >= count) {
-                    return *chosen.front();
+                    return chosen;
                 }
             }
         }
-        return chosen.empty() ? voices_.front() : *chosen.front();
+        return chosen;
     }
 
     void ensureBuffers(int n) {

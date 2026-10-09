@@ -97,6 +97,31 @@ bool finite(const std::vector<float>& x) {
 
 // Mirrors tests/test_tail_slots.py: with tail slots the oldest held note is force-released
 // into a short tail instead of being hard-stolen, and the pool never exceeds its capacity.
+// Unison with tail slots must allocate distinct voices: two voices panned
+// -0.5/+0.5 give a balanced stereo image (regression: both landed on one voice).
+int checkUnisonBalance() {
+    const auto enginePtr = std::make_unique<snakeoil::Engine>(44100.0, 512, 12, 6, 12);
+    snakeoil::Engine& engine = *enginePtr;
+    engine.setChoice("unison_voices", "2");
+    engine.setParamById("unison_detune", 1.8);
+    engine.noteOn(60, 100);
+    std::vector<float> buffer(1024);
+    double l = 0.0;
+    double r = 0.0;
+    for (int k = 0; k < 100; ++k) {
+        engine.render(buffer.data(), 512);
+        for (int j = 0; j < 512; ++j) {
+            l += static_cast<double>(buffer[2 * j]) * buffer[2 * j];
+            r += static_cast<double>(buffer[2 * j + 1]) * buffer[2 * j + 1];
+        }
+    }
+    if (l <= 0.0 || std::fabs(std::sqrt(r / l) - 1.0) > 0.02) {
+        std::printf("FAIL unison with tail slots is lopsided (R/L = %.3f)\n", std::sqrt(r / l));
+        return 1;
+    }
+    return 0;
+}
+
 int checkHybridAllocation() {
     int failures = 0;
     const auto fail = [&](const char* what) {
@@ -177,6 +202,7 @@ int checkHybridAllocation() {
 
 int main() {
     int failures = checkHybridAllocation();
+    failures += checkUnisonBalance();
 
     // Effects must be block-size invariant (Python tolerance 1e-9).
     const auto chainRef = renderChain(8192, 8192);
