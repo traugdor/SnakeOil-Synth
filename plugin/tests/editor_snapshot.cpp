@@ -441,7 +441,7 @@ int checkLayout(juce::AudioProcessorEditor& editor, const std::string& tag, bool
         }
     }
 
-    // Voice LEDs: twelve equal, evenly spaced lights at the far left of the header strip, left of the title.
+    // Voice LEDs: twelve equal, evenly spaced lights at the far right of the header strip, right of the title.
     if (auto* snake = dynamic_cast<SnakeOilEditor*>(&editor)) {
         auto& leds = snake->voiceLeds();
         const auto inEditor = [&](int i) { return editor.getLocalArea(&leds, leds.ledBounds(i)); };
@@ -453,7 +453,7 @@ int checkLayout(juce::AudioProcessorEditor& editor, const std::string& tag, bool
             if (b.getY() < 0 || b.getBottom() > kHeaderHeight - 1) {
                 fail("voice LED " + std::to_string(i) + " is outside the header strip");
             }
-            if (b.getRight() >= SnakeOilEditor::titleLeft()) {
+            if (b.getX() <= SnakeOilEditor::titleLeft() + 200) {
                 fail("voice LED " + std::to_string(i) + " reaches the title text area");
             }
             if (b.getWidth() != b.getHeight() || b.getWidth() != inEditor(0).getWidth()) {
@@ -472,8 +472,8 @@ int checkLayout(juce::AudioProcessorEditor& editor, const std::string& tag, bool
                 }
             }
         }
-        if (inEditor(0).getX() >= 16) {
-            fail("voice LEDs are not at the far left of the header");
+        if (editor.getWidth() - inEditor(VoiceLeds::kCount - 1).getRight() > 16) {
+            fail("voice LEDs are not at the far right of the header");
         }
     } else {
         fail("editor is not a SnakeOilEditor");

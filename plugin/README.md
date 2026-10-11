@@ -50,7 +50,7 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
     dark `LookAndFeel_V4` theme lives in the same file. Unknown registry groups form an extra row at the bottom.
   - `LevelMeter.h` - header-only stereo peak meter (two vertical bars, -60..0 dBFS, peak hold, latching CLIP);
     its ballistics take an explicit timestamp so they can be driven from a test.
-  - `VoiceLeds.h` - header-only row of twelve round LEDs at the far left of the editor's title strip, one per
+  - `VoiceLeds.h` - header-only row of twelve round LEDs at the far right of the editor's title strip, one per
     playable voice (green = key held, amber = released note still ringing). The audio thread ORs each block's
     `Engine::voiceState` into two atomic bitmasks; the 15 Hz editor timer drains them with
     `takeVoiceActivity`, so notes shorter than one refresh still flash. Brightness rises instantly and fades

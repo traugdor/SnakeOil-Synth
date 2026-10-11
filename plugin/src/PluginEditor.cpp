@@ -16,8 +16,8 @@ namespace {
 
 // Geometry (pixels).
 constexpr int kHeaderHeight = 28;
-constexpr int kLedsX = 5;       // the LED row component; its first light sits 5 px further in
-constexpr int kTitleX = 192;    // title text starts right of the LED row
+constexpr int kLedsMarginRight = 5;  // gap between the LED row component and the window's right edge
+constexpr int kTitleX = 14;
 constexpr int kOuterMargin = 6;
 constexpr int kBoxGap = 4;
 constexpr int kScrollBarThickness = 10;
@@ -1054,7 +1054,8 @@ void SnakeOilEditor::paint(juce::Graphics& g) {
 }
 
 void SnakeOilEditor::resized() {
-    leds_.setBounds(kLedsX, 0, VoiceLeds::kPreferredWidth, kHeaderHeight - 1);
+    leds_.setBounds(getWidth() - VoiceLeds::kPreferredWidth - kLedsMarginRight, 0, VoiceLeds::kPreferredWidth,
+                    kHeaderHeight - 1);
     auto bounds = getLocalBounds();
     bounds.removeFromTop(kHeaderHeight);
     viewport_.setBounds(bounds);
