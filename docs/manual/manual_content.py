@@ -3,7 +3,7 @@
 CSS = r"""
 @page { size: Letter; margin: 22mm 20mm 24mm 20mm;
   @top-left { content: "SnakeOil Synth User Manual"; font: 8.5pt Arial, sans-serif; color: #6b7280; }
-  @top-right { content: "Version 0.1.0"; font: 8.5pt Arial, sans-serif; color: #6b7280; }
+  @top-right { content: "Version 1.0.0"; font: 8.5pt Arial, sans-serif; color: #6b7280; }
   @bottom-center { content: counter(page); font: 9pt Arial, sans-serif; color: #374151; } }
 @page cover { margin: 0; @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; } }
 :root { --accent: #0e6f8e; --ink: #1f2937; --soft: #eef6f9; }
@@ -75,7 +75,7 @@ COVER = """
   <h1>SnakeOil Synth</h1>
   <div class="sub">User Manual</div>
   <div class="ver">VST3 instrument and standalone application for Windows<br>
-  Version 0.1.0 &middot; Two oscillators &middot; Moog-style 12/24 dB filter<br>
+  Version 1.0.0 &middot; Two oscillators &middot; Moog-style 12/24 dB filter<br>
   Mod matrix &middot; Unison &middot; Stereo effects</div>
   <div class="snake">A C++ port of the SnakeOil Synth reference synthesizer. VST is a trademark of Steinberg Media Technologies GmbH.</div>
 </section>
@@ -84,7 +84,7 @@ COVER = """
 FRONT = """
 <section class="legal">
 <h1 style="break-before:avoid">About this manual</h1>
-<p><b>Product.</b> SnakeOil Synth, version 0.1.0 (pre-release), VST3 plug-in and standalone application, 64-bit Windows.</p>
+<p><b>Product.</b> SnakeOil Synth, version 1.0.0, VST3 plug-in and standalone application, 64-bit Windows.</p>
 <p><b>Who this is for.</b> Musicians who want to play and program SnakeOil Synth. You do not need to know how synthesizers work internally: every control is explained in plain words, and the reference section tells you the range, the default and the sound of every setting. If you already know subtractive synthesis, skim chapters 1&ndash;5 and use chapters 6&ndash;9 as a reference.</p>
 <p><b>How it is organised.</b> The manual follows the usual structure of a synthesizer manual and keeps tasks and reference apart: <i>getting started</i> (installation, first sound, how the window works), <i>concepts</i> (signal flow, voices), <i>reference</i> (one section per box of the window, then MIDI, parameters, specifications) and <i>help</i> (recipes, troubleshooting, glossary, index). Chapter numbers in blue, like <span class="xref">6</span>, are links in the PDF.</p>
 <p><b>Conventions.</b> Control names appear in <b>bold</b> exactly as they are printed in the window. Values are written as they appear in the value boxes, for example <code>0.75</code>, <code>2000</code> Hz or <code>+12</code>. A <i>Note</i> adds information, a <i>Tip</i> suggests a way of working and a <i>Caution</i> warns about something that can surprise you or hurt your ears.</p>
@@ -653,7 +653,7 @@ def build(m):
     # ------------------------------------------------------------------ 11
     m.h(1, "specs", "Specifications")
     m.table(("Item", "Value"), [
-        ("Product", "SnakeOil Synth 0.1.0 (pre-release)"),
+        ("Product", "SnakeOil Synth 1.0.0"),
         ("Formats", "VST3 (64-bit), standalone application"),
         ("Platform", "Windows 10 / 11, 64-bit"),
         ("Plug-in category", "Instrument / Synth (VST3)"),

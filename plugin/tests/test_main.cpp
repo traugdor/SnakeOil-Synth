@@ -14,7 +14,7 @@
 TEST_CASE("version string is the expected semver") {
     const char* v = snakeoil::version();
     REQUIRE(v != nullptr);
-    CHECK(std::strcmp(v, "0.1.0") == 0);
+    CHECK(std::strcmp(v, "1.0.0") == 0);
 }
 
 TEST_CASE("clamp bounds values") {

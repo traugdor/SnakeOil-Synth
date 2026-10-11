@@ -1,7 +1,7 @@
 name: Plugin build and release
 
 # Builds the VST3 plug-in and the standalone app on Windows, runs the plug-in tests and
-# publishes a GitHub pre-release with the binaries on every push to main that touches
+# publishes a GitHub release (tagged v<VERSION>) with the binaries on every push to main that touches
 # the plug-in. Python-only and docs-only pushes are covered by the CI workflow instead.
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
   build:
     runs-on: windows-latest
     env:
-      VERSION: "0.1.0"
+      VERSION: "1.0.0"
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +52,7 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          $tag = "v$env:VERSION-build.${{ github.run_number }}"
+          $tag = "v$env:VERSION"
           "TAG=$tag" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
           $art = "plugin/build/SnakeOilSynth_artefacts/Release"
           New-Item -ItemType Directory -Force dist | Out-Null
@@ -66,8 +66,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A push to main rebuilds the release for the current version: an existing release
+          # (and its tag) is replaced. Bump VERSION above to publish a new version.
+          gh release view $env:TAG *> $null
+          if ($LASTEXITCODE -eq 0) { gh release delete $env:TAG --yes --cleanup-tag }
           gh release create $env:TAG dist/* `
             --target ${{ github.sha }} `
             --title "SnakeOil Synth $env:TAG" `
-            --prerelease `
+            --latest `
             --generate-notes
