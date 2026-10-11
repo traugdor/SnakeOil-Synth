@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "LevelMeter.h"
+#include "VoiceLeds.h"
 
 class SnakeOilProcessor;
 
@@ -24,6 +25,12 @@ public:
     /** The output meter in the Master box; exposed so tools can drive it without a running audio engine. */
     LevelMeter& levelMeter();
 
+    /** The voice-activity LEDs at the left of the header strip. */
+    VoiceLeds& voiceLeds() { return leds_; }
+
+    /** X of the title text in the header strip (right of the LEDs). */
+    static int titleLeft();
+
 private:
     class Content;
 
@@ -33,6 +40,7 @@ private:
     std::unique_ptr<juce::LookAndFeel_V4> laf_;
     std::unique_ptr<Content> content_;
     juce::Viewport viewport_;
+    VoiceLeds leds_;
     juce::TooltipWindow tooltips_{this, 700};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SnakeOilEditor)

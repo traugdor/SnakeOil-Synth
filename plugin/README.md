@@ -37,7 +37,7 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
     parameter; it is stored as the `tailSlots` property of the APVTS state tree (absent means 12), handed to the
     audio thread through an atomic, and survives `prepareToPlay`. The Unison box has a clickable "Tails n/slots"
     label that toggles 12 and 24; the audio thread publishes the live tail count once per block.
-  - `PluginEditor.h/.cpp` - the editor: a slim title strip above a `juce::Viewport` whose content reproduces the
+  - `PluginEditor.h/.cpp` - the editor: a slim title strip (voice LEDs, then the title) above a `juce::Viewport` whose content reproduces the
     Python app's hand-placed five-column grid (Oscillator 1 | Oscillator 2 | Modulation | Master | Tempo + Noise;
     Filter | Filter Env | Amp Envelope | LFO | Mod Matrix; Effects across three columns | Unison | Glide). Columns
     are as wide as their widest box, rows as tall as their tallest, and boxes stretch to fill their cell. The
@@ -50,6 +50,11 @@ Outputs: `plugin\build\Release\SnakeOilSynth_artefacts\Release\VST3\SnakeOil Syn
     dark `LookAndFeel_V4` theme lives in the same file. Unknown registry groups form an extra row at the bottom.
   - `LevelMeter.h` - header-only stereo peak meter (two vertical bars, -60..0 dBFS, peak hold, latching CLIP);
     its ballistics take an explicit timestamp so they can be driven from a test.
+  - `VoiceLeds.h` - header-only row of twelve round LEDs at the far left of the editor's title strip, one per
+    playable voice (green = key held, amber = released note still ringing). The audio thread ORs each block's
+    `Engine::voiceState` into two atomic bitmasks; the 15 Hz editor timer drains them with
+    `takeVoiceActivity`, so notes shorter than one refresh still flash. Brightness rises instantly and fades
+    over 120 ms (explicit-time API, like the meter). The title text starts right of the LEDs.
   - `params_gen.hpp` - generated parameter registry (do not edit by hand).
 - `tests/` - doctest unit tests (`snakeoil_tests`), the golden harness (`golden_check`), `dsp_selftest`, and
   `editor_snapshot.cpp` (the `EditorSnapshot` tool, below).

@@ -399,6 +399,19 @@ public:
         return count;
     }
 
+    // State of voice slot `index`: 0 idle, 1 sounding (key held), 2 releasing (ringing out).
+    // Out-of-range indexes read as idle.
+    int voiceState(int index) const {
+        if (index < 0 || static_cast<std::size_t>(index) >= voices_.size()) {
+            return 0;
+        }
+        const auto& v = voices_[static_cast<std::size_t>(index)];
+        if (!v.active()) {
+            return 0;
+        }
+        return v.gated() ? 1 : 2;
+    }
+
     void peekMeter(double& left, double& right, bool& clipped) const {
         left = meterL_;
         right = meterR_;

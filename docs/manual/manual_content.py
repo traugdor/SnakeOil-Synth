@@ -208,6 +208,7 @@ def build(m):
         ("Drop-down list", "Click to open the list, click an entry. Used for choices such as <b>Mode</b>, <b>Wave</b> and <b>Division</b>."),
         ("Horizontal slider", "Used for the eight <b>Scale</b> controls of the mod matrix. Drag the handle; double-click to return it to 0. The bar grows from the centre line, to the left for negative and to the right for positive values."),
         ("Level meter", "The two vertical bars in the <b>Master</b> box. See section [[ref:master]]."),
+        ("Voice LEDs", "The twelve small lights at the far left of the header, one per playable voice. <b>Green</b> = the key is held; <b>amber</b> = the key was released and the note is still ringing out. Very short notes still flash briefly. See section [[ref:voices-poly]]."),
         ("Tails n/n label", "The small grey text under the <b>Unison</b> controls. Click it to switch between 12 and 24 tail slots. See section [[ref:voices-tails]]."),
         ("Tooltips", "Hold the pointer still over a shortened label or over the <b>Mod Matrix</b> box to see the full text."),
         ("Scroll and resize", "Drag the bottom-right corner to resize the window; scroll bars appear when the window is smaller than the content. Standalone only: the <b>Options</b> button opens the audio and MIDI settings."),
@@ -538,6 +539,7 @@ def build(m):
     m.h(1, "voices", "Voices, polyphony and tails")
     m.h(2, "voices-poly", "Polyphony")
     m.p("SnakeOil Synth is <b>polyphonic</b>: it plays several notes at once. It has <b>12 playable voices</b>. One voice is used per held key, or several per key with unison (section [[ref:unison]]). When you play a thirteenth note while twelve voices are held, the oldest held note is given a very short fade (10 milliseconds, too fast to hear as a gap) and the new note takes its place, so you do not get a click.")
+    m.p("The twelve small lights at the far left of the window header show what the voices are doing: one light per playable voice, <b>green</b> while its key is held and <b>amber</b> after the key is released while the note still rings out. A very short note makes its light flash briefly rather than being missed.")
     m.h(2, "voices-tails", "Tail slots")
     m.p("When you release a key the note does not stop at once: it rings out over the <b>Release</b> time of the amp envelope. A synthesizer that gives the released note's voice to the next note at that moment would cut the tail off with an audible click or &ldquo;pop&rdquo;. To avoid this SnakeOil Synth keeps extra voices, called <b>tail slots</b>, for released notes only. The notes you are holding use the 12 playable voices; the notes you have let go of ring out in the tail slots.")
     m.ul(["The label under the <b>Unison</b> controls reads <b>Tails n/m</b>: <i>n</i> released notes are still ringing, out of <i>m</i> slots in use. It turns amber when all slots are full.",

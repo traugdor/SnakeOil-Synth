@@ -51,6 +51,14 @@ public:
     // Released notes still ringing, as of the last processed block.
     int tailCount() const { return tailCount_.load(std::memory_order_relaxed); }
 
+    // Voice-activity LEDs: bit i is set when playable voice i was held (gated) or
+    // releasing in any block since the last call; both masks are then cleared. GUI thread.
+    static constexpr int kVoiceLeds = 12;
+    void takeVoiceActivity(uint32_t& gated, uint32_t& releasing) {
+        gated = gatedMask_.exchange(0, std::memory_order_relaxed);
+        releasing = releasingMask_.exchange(0, std::memory_order_relaxed);
+    }
+
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout makeLayout();
     void syncParametersToEngine();
@@ -64,6 +72,8 @@ private:
     std::vector<float> scratch_;
     std::atomic<int> tailSlots_{kDefaultTailSlots};
     std::atomic<int> tailCount_{0};
+    std::atomic<uint32_t> gatedMask_{0};
+    std::atomic<uint32_t> releasingMask_{0};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SnakeOilProcessor)
 };

@@ -441,6 +441,44 @@ int checkLayout(juce::AudioProcessorEditor& editor, const std::string& tag, bool
         }
     }
 
+    // Voice LEDs: twelve equal, evenly spaced lights at the far left of the header strip, left of the title.
+    if (auto* snake = dynamic_cast<SnakeOilEditor*>(&editor)) {
+        auto& leds = snake->voiceLeds();
+        const auto inEditor = [&](int i) { return editor.getLocalArea(&leds, leds.ledBounds(i)); };
+        if (!leds.isVisible() || leds.getTooltip().isEmpty()) {
+            fail("voice LEDs are hidden or have no tooltip");
+        }
+        for (int i = 0; i < VoiceLeds::kCount; ++i) {
+            const auto b = inEditor(i);
+            if (b.getY() < 0 || b.getBottom() > kHeaderHeight - 1) {
+                fail("voice LED " + std::to_string(i) + " is outside the header strip");
+            }
+            if (b.getRight() >= SnakeOilEditor::titleLeft()) {
+                fail("voice LED " + std::to_string(i) + " reaches the title text area");
+            }
+            if (b.getWidth() != b.getHeight() || b.getWidth() != inEditor(0).getWidth()) {
+                fail("voice LED " + std::to_string(i) + " is not a round, equal-size light");
+            }
+            if (std::abs(b.getCentreY() - (kHeaderHeight - 1) / 2) > 1) {
+                fail("voice LED " + std::to_string(i) + " is not vertically centred");
+            }
+            if (i > 0) {
+                const auto prev = inEditor(i - 1);
+                if (b.getX() <= prev.getRight()) {
+                    fail("voice LEDs " + std::to_string(i - 1) + " and " + std::to_string(i) + " overlap");
+                }
+                if (b.getX() - prev.getX() != inEditor(1).getX() - inEditor(0).getX()) {
+                    fail("voice LED spacing is uneven at " + std::to_string(i));
+                }
+            }
+        }
+        if (inEditor(0).getX() >= 16) {
+            fail("voice LEDs are not at the far left of the header");
+        }
+    } else {
+        fail("editor is not a SnakeOilEditor");
+    }
+
     if (expectFits && in.viewport != nullptr) {
         const int visible = in.viewport->getMaximumVisibleWidth();
         if (in.root->getWidth() > visible) {
@@ -469,6 +507,45 @@ bool writePng(const juce::Image& image, const juce::File& file) {
 
 }  // namespace
 
+// VoiceLeds ballistics: instant rise, linear fade to off within the fade time.
+int checkLedBallistics() {
+    int failures = 0;
+    const auto fail = [&](const char* what) {
+        std::printf("FAIL voice LED ballistics: %s\n", what);
+        ++failures;
+    };
+    VoiceLeds leds;
+    leds.setBounds(0, 0, VoiceLeds::kPreferredWidth, 27);
+    leds.update(0, 0, 0.0);
+    for (int i = 0; i < VoiceLeds::kCount; ++i) {
+        if (leds.level(i) != 0.0f) {
+            fail("LEDs do not start dark");
+        }
+    }
+    leds.update(0b101u, 0b010u, 10.0);  // LEDs 0 and 2 held, LED 1 releasing
+    if (leds.greenLevel(0) != 1.0f || leds.greenLevel(2) != 1.0f || leds.amberLevel(1) != 1.0f ||
+        leds.level(3) != 0.0f) {
+        fail("did not rise instantly to full brightness");
+    }
+    leds.update(0, 0, 70.0);
+    if (!(leds.greenLevel(0) > 0.3f && leds.greenLevel(0) < 0.7f)) {
+        fail("not about half brightness after half the fade time");
+    }
+    leds.update(0, 0, 130.0);
+    if (leds.greenLevel(0) > 0.01f) {
+        fail("not dark ~120 ms after release");
+    }
+    leds.update(0, 0, 160.0);
+    if (leds.level(0) != 0.0f || leds.level(1) != 0.0f || leds.level(2) != 0.0f) {
+        fail("not fully off within 150 ms");
+    }
+    leds.update(0b1u, 0b1u, 170.0);  // both masks: counts as held
+    if (leds.greenLevel(0) != 1.0f) {
+        fail("held voice did not show green");
+    }
+    return failures;
+}
+
 int main(int argc, char** argv) {
     juce::ScopedJuceInitialiser_GUI juceInit;
 
@@ -496,6 +573,12 @@ int main(int argc, char** argv) {
     // Show some signal in the header meter (no audio runs here).
     if (auto* snakeEditor = dynamic_cast<SnakeOilEditor*>(editor.get())) {
         snakeEditor->levelMeter().update(0.5, 0.15, true, 0.0);
+        if (pngDir != juce::File()) {
+            snakeEditor->voiceLeds().update(0b0011111u, 0b1100000u, 0.0);  // demo: 0..4 held, 5..6 releasing
+        }
+    }
+    if (check) {
+        failures += checkLedBallistics();
     }
 
     const auto snapshot = [&](const char* name) {

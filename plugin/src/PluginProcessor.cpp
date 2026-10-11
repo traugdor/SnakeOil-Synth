@@ -187,6 +187,15 @@ void SnakeOilProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
             }
         }
         done += chunk;
+        uint32_t gated = 0;
+        uint32_t releasing = 0;
+        for (int i = 0; i < kVoiceLeds; ++i) {
+            const int state = engine_->voiceState(i);
+            gated |= static_cast<uint32_t>(state == 1) << i;
+            releasing |= static_cast<uint32_t>(state == 2) << i;
+        }
+        gatedMask_.fetch_or(gated, std::memory_order_relaxed);
+        releasingMask_.fetch_or(releasing, std::memory_order_relaxed);
     }
     tailCount_.store(engine_->tailCount(), std::memory_order_relaxed);
 }

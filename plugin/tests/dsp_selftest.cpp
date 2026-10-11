@@ -228,6 +228,37 @@ int main() {
         }
     }
 
+    // Voice LED states: idle -> sounding -> releasing -> idle; out-of-range reads as idle.
+    {
+        const auto ptr = std::make_unique<snakeoil::Engine>(44100.0, 256);
+        snakeoil::Engine& e = *ptr;
+        std::vector<float> out(512);
+        const auto states = [&](int want) {
+            int n = 0;
+            for (int i = 0; i < 12; ++i) {
+                n += e.voiceState(i) == want ? 1 : 0;
+            }
+            return n;
+        };
+        const auto fail = [&](const char* what) {
+            std::printf("FAIL voiceState: %s\n", what);
+            ++failures;
+        };
+        e.setParamById("amp_release", 0.05);
+        if (states(0) != 12) fail("fresh engine is not idle");
+        e.noteOn(60, 100);
+        if (states(1) != 1 || states(2) != 0) fail("held note is not state 1");
+        e.render(out.data(), 256);
+        e.noteOff(60);
+        e.render(out.data(), 256);
+        if (states(1) != 0 || states(2) != 1) fail("released note is not state 2");
+        for (int i = 0; i < 400 && states(0) != 12; ++i) {
+            e.render(out.data(), 256);
+        }
+        if (states(0) != 12) fail("voice did not return to idle");
+        if (e.voiceState(-1) != 0 || e.voiceState(100000) != 0) fail("out-of-range index is not 0");
+    }
+
     // Silence in must stay silent out.
     const auto quietPtr = std::make_unique<snakeoil::Engine>(44100.0, 256);
     snakeoil::Engine& quiet = *quietPtr;

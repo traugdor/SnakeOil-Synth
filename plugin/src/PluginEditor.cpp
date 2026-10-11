@@ -16,6 +16,8 @@ namespace {
 
 // Geometry (pixels).
 constexpr int kHeaderHeight = 28;
+constexpr int kLedsX = 5;       // the LED row component; its first light sits 5 px further in
+constexpr int kTitleX = 192;    // title text starts right of the LED row
 constexpr int kOuterMargin = 6;
 constexpr int kBoxGap = 4;
 constexpr int kScrollBarThickness = 10;
@@ -1029,6 +1031,7 @@ SnakeOilEditor::SnakeOilEditor(SnakeOilProcessor& processor)
     setResizable(true, true);
     setResizeLimits(640, 420, std::max(fullWidth, 640) + 600, std::max(fullHeight, 420));
     setSize(std::min(fullWidth, kMaxDefaultWidth), std::min(fullHeight, kMaxDefaultHeight));
+    addAndMakeVisible(leds_);
     startTimerHz(15);
 }
 
@@ -1039,16 +1042,19 @@ SnakeOilEditor::~SnakeOilEditor() {
 
 LevelMeter& SnakeOilEditor::levelMeter() { return content_->meter(); }
 
+int SnakeOilEditor::titleLeft() { return kTitleX; }
+
 void SnakeOilEditor::paint(juce::Graphics& g) {
     g.fillAll(kBackground);
     g.setColour(kOutline);
     g.fillRect(0, kHeaderHeight - 1, getWidth(), 1);
     g.setColour(kText);
     g.setFont(juce::Font(juce::FontOptions(16.0f, juce::Font::bold)));
-    g.drawText("SnakeOil Synth", 14, 0, 300, kHeaderHeight - 1, juce::Justification::centredLeft, false);
+    g.drawText("SnakeOil Synth", kTitleX, 0, 300, kHeaderHeight - 1, juce::Justification::centredLeft, false);
 }
 
 void SnakeOilEditor::resized() {
+    leds_.setBounds(kLedsX, 0, VoiceLeds::kPreferredWidth, kHeaderHeight - 1);
     auto bounds = getLocalBounds();
     bounds.removeFromTop(kHeaderHeight);
     viewport_.setBounds(bounds);
@@ -1061,5 +1067,9 @@ void SnakeOilEditor::timerCallback() {
     bool clipped = false;
     processor_.engineMeter(left, right, clipped);
     content_->meter().update(left, right, clipped, juce::Time::getMillisecondCounterHiRes());
+    uint32_t gated = 0;
+    uint32_t releasing = 0;
+    processor_.takeVoiceActivity(gated, releasing);
+    leds_.update(gated, releasing, juce::Time::getMillisecondCounterHiRes());
     content_->updateTails();
 }
