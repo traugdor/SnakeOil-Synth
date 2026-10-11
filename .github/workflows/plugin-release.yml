@@ -28,14 +28,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Load the MSVC environment
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio/Installer/vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw "No Visual Studio with the C++ tools was found" }
+          Write-Host "Using $vs"
+          $vcvars = Join-Path $vs "VC/Auxiliary/Build/vcvars64.bat"
+          cmd /c "`"$vcvars`" >nul && set" | ForEach-Object {
+            if ($_ -match '^([^=]+)=(.*)$') { "$($Matches[1])=$($Matches[2])" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV }
+          }
+
       - name: Configure
-        run: cmake -S plugin -B plugin/build -G "Visual Studio 17 2022" -A x64
+        run: cmake -S plugin -B plugin/build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build plugin/build --config Release --parallel
+        run: cmake --build plugin/build
 
       - name: Test
-        run: ctest --test-dir plugin/build -C Release --output-on-failure
+        run: ctest --test-dir plugin/build --output-on-failure
 
       - name: Package
         shell: pwsh
